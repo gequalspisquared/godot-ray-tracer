@@ -40,6 +40,12 @@ func create_world_spheres() -> PackedFloat32Array:
 
 	data.append_array(sphere_to_packed_array(sphere))
 
+	var sphere2 := Sphere.new()
+	sphere2.center = Vector3(0.0, -100.5, -1.0)
+	sphere2.radius = 100.0
+
+	data.append_array(sphere_to_packed_array(sphere2))
+
 	return data
 
 
@@ -84,7 +90,14 @@ func _ready():
 	$Control/TextureRect.texture = Texture2DRD.new()
 	$Control/TextureRect.texture.texture_rd_rid = texture
 
-	var spheres_bytes := world_sphere_data.to_byte_array()
+
+	@warning_ignore("integer_division")
+	# Extra zeros are for padding since GPU likes spacing everything by 16 bytes
+	var size_array: PackedInt32Array = [world_sphere_data.size() / 4, 0, 0, 0]
+	# var size_array: PackedInt32Array = [2, 0, 0, 0]
+	var spheres_bytes: PackedByteArray = size_array.to_byte_array()
+	spheres_bytes.append_array(world_sphere_data.to_byte_array())
+	print("size: ", spheres_bytes.size())
 	spheres_rid = rd.storage_buffer_create(spheres_bytes.size(), spheres_bytes)
 	var spheres_uniform := RDUniform.new()
 	spheres_uniform.uniform_type = RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER

@@ -17,14 +17,46 @@ struct Ray {
     vec3 direction;
 };
 
+struct HitRecord {
+    vec3 point;
+    vec3 normal;
+    float t;
+    bool front_face;
+};
+
+void hit_record_set_normal_face(inout HitRecord record, Ray ray, vec3 outward_normal) {
+    record.front_face = dot(ray.direction, outward_normal) < 0.0;
+    record.normal = record.front_face ? outward_normal : -outward_normal;
+}
+
 struct Sphere {
+    // vec4 data; // xyz is center, w is radius
     vec3 center;
     float radius;
 };
 
 layout(set = 1, binding = 0, std430) restrict buffer WorldSpheres {
+    int num_spheres;
+    int padding[3];
     Sphere spheres[];
 } world_spheres;
+
+struct Interval {
+    float min;
+    float max;
+};
+
+float interval_size(Interval interval) {
+    return interval.max - interval.min;
+}
+
+bool interval_contains(Interval interval, float x) {
+    return interval.min <= x && x <= interval.max;
+}
+
+bool interval_surrounds(Interval interval, float x) {
+    return interval.min < x && x < interval.max;
+}
 
 struct Camera {
     float focal_length;
@@ -43,7 +75,7 @@ vec3 at(Ray ray, float t) {
     return ray.origin + ray.direction*t;
 }
 
-float hit_sphere(Sphere sphere, Ray ray) {
+bool hit_sphere(Sphere sphere, Ray ray, Interval ray_t, inout HitRecord record) {
     vec3 oc = sphere.center - ray.origin;
     float a = dot(ray.direction, ray.direction);
     float h = dot(ray.direction, oc);
@@ -51,22 +83,47 @@ float hit_sphere(Sphere sphere, Ray ray) {
     float discriminant = h*h - a*c;
 
     if (discriminant < 0.0) {
-        return -1.0;
-    } else {
-        return (h - sqrt(discriminant)) / a;
+        return false;
+    } 
+
+    float sqrtd = sqrt(discriminant);
+
+    float root = (h - sqrtd) / a;
+    if (!interval_surrounds(ray_t, root)) {
+        root = (h + sqrtd) / a;
+        if (!interval_surrounds(ray_t, root)) {
+            return false;
+        }
     }
+
+    record.t = root;
+    record.point = at(ray, record.t);
+    vec3 outward_normal = (record.point - sphere.center) / sphere.radius;
+    hit_record_set_normal_face(record, ray, outward_normal);
+
+    return true;
+}
+
+bool world_hit(Ray ray, Interval ray_t, inout HitRecord record) {
+    HitRecord temp_record;
+    bool hit_anything = false;
+    float closest_so_far = ray_t.max;
+
+    for (int i = 0; i < world_spheres.num_spheres; i++) {
+        if (hit_sphere(world_spheres.spheres[i], ray, Interval(ray_t.min, closest_so_far), temp_record)) {
+            hit_anything = true;
+            closest_so_far = temp_record.t;
+            record = temp_record;
+        }
+    }
+
+    return hit_anything;
 }
 
 vec4 ray_color(Ray ray) {
-    // vec3 center = vec3(0.0, 0.0, -1.0);
-    // Sphere sphere = {center, 0.5};
-    // float t = hit_sphere(sphere, ray);
-    Sphere sphere = world_spheres.spheres[0];
-    vec3 center = sphere.center;
-    float t = hit_sphere(sphere, ray);
-    if (t > 0.0) {
-        vec3 normal = normalize(at(ray, t) - center);
-        return vec4(0.5*(normal + vec3(1.0, 1.0, 1.0)), 1.0);
+    HitRecord record;
+    if (world_hit(ray, Interval(0.0, 1000.0), record)) {
+        return vec4(0.5*(record.normal + vec3(1.0, 1.0, 1.0)), 1.0);
     }
 
     vec3 dir = normalize(ray.direction);
@@ -105,8 +162,6 @@ Camera create_camera() {
 void main() {
     Camera camera = create_camera();
     ivec2 screen_size  = imageSize(output_texture);
-    float image_width  = float(screen_size.x);
-    float image_height = float(screen_size.y);
 
     vec3 pixel_center = camera.pixel00_loc + (gl_GlobalInvocationID.x * camera.pixel_delta_u)
                                            + (gl_GlobalInvocationID.y * camera.pixel_delta_v);
