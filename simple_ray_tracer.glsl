@@ -58,6 +58,10 @@ bool interval_surrounds(Interval interval, float x) {
     return interval.min < x && x < interval.max;
 }
 
+float interval_clamp(Interval interval, float x) {
+    return clamp(x, interval.min, interval.max);
+}
+
 struct Camera {
     float focal_length;
     float viewport_height;
@@ -70,6 +74,18 @@ struct Camera {
     vec3 viewport_upper_left;
     vec3 pixel00_loc;
 };
+
+float rand(vec2 co) {
+    return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float rand_range(vec2 co, float min, float max) {
+    return min + (max - min)*rand(co);
+}
+
+vec3 rand_square(vec2 co) {
+    return vec3(rand(co), rand(co + vec2(1.0, 1.0)), 0.0);
+}
 
 vec3 at(Ray ray, float t) {
     return ray.origin + ray.direction*t;
@@ -132,6 +148,16 @@ vec4 ray_color(Ray ray) {
     return vec4(b, 1.0);
 }
 
+Ray get_ray(Camera camera, int i) {
+    vec3 offset = rand_square(gl_GlobalInvocationID.xy * i);
+    vec3 pixel_sample = camera.pixel00_loc + ((offset.x + gl_GlobalInvocationID.x) * camera.pixel_delta_u)
+                                           + ((offset.y + gl_GlobalInvocationID.y) * camera.pixel_delta_v);
+    vec3 ray_dir = pixel_sample - camera.center;
+    Ray ray = {camera.center, ray_dir};
+
+    return ray;
+}
+
 Camera create_camera() {
     Camera camera;
 
@@ -160,15 +186,20 @@ Camera create_camera() {
 }
 
 void main() {
+    // Config stuff
+    int samples_per_pixel = 10;
+
+    float pixel_samples_scale = 1.0 / samples_per_pixel;
+
     Camera camera = create_camera();
     ivec2 screen_size  = imageSize(output_texture);
 
-    vec3 pixel_center = camera.pixel00_loc + (gl_GlobalInvocationID.x * camera.pixel_delta_u)
-                                           + (gl_GlobalInvocationID.y * camera.pixel_delta_v);
-    vec3 ray_dir = pixel_center - camera.center;
-    Ray ray = {camera.center, ray_dir};
-
-    vec4 color = ray_color(ray);
+    vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+    for (int i = 0; i < samples_per_pixel; i++) {
+        Ray ray = get_ray(camera, i);
+        color += ray_color(ray);
+    }
+    color *= pixel_samples_scale;
     ivec2 texel = ivec2(gl_GlobalInvocationID.xy);
     imageStore(output_texture, texel, color);
 }
