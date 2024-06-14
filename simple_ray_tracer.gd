@@ -28,7 +28,7 @@ func _ready():
 	# rd = RenderingServer.create_local_rendering_device()
 	rd = RenderingServer.get_rendering_device()
 
-	shader = load_shader("res://color.glsl")
+	shader = load_shader("res://simple_ray_tracer.glsl")
 	pipeline = rd.compute_pipeline_create(shader)
 
 	@warning_ignore("narrowing_conversion")
@@ -82,10 +82,8 @@ func _process(delta):
 	# # texture.texture_rd_rid = 
 	# $Control/TextureRect.texture = image_texture
 	
-
-	if frame % 10 == 0:
-		var fps: float = 1.0 / delta
-		$Label.text = "FPS: %0.1f" % fps
+	if frame % 100 == 0:
+		$Label.text = "FPS: %0.1f" % Performance.get_monitor(Performance.TIME_FPS)
 
 
 func load_shader(path: String) -> RID:
