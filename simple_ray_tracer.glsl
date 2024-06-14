@@ -22,6 +22,10 @@ struct Sphere {
     float radius;
 };
 
+layout(set = 1, binding = 0, std430) restrict buffer WorldSpheres {
+    Sphere spheres[];
+} world_spheres;
+
 struct Camera {
     float focal_length;
     float viewport_height;
@@ -39,19 +43,30 @@ vec3 at(Ray ray, float t) {
     return ray.origin + ray.direction*t;
 }
 
-bool hit_sphere(Sphere sphere, Ray ray) {
+float hit_sphere(Sphere sphere, Ray ray) {
     vec3 oc = sphere.center - ray.origin;
     float a = dot(ray.direction, ray.direction);
-    float b = -2.0 * dot(ray.direction, oc);
+    float h = dot(ray.direction, oc);
     float c = dot(oc, oc) - sphere.radius*sphere.radius;
-    float discriminant = b*b - 4*a*c;
-    return discriminant >= 0.0;
+    float discriminant = h*h - a*c;
+
+    if (discriminant < 0.0) {
+        return -1.0;
+    } else {
+        return (h - sqrt(discriminant)) / a;
+    }
 }
 
 vec4 ray_color(Ray ray) {
-    Sphere sphere = {vec3(0.0, 0.0, -1.0), 0.5};
-    if (hit_sphere(sphere, ray)) {
-        return vec4(1.0, 0.0, 0.0, 1.0);
+    // vec3 center = vec3(0.0, 0.0, -1.0);
+    // Sphere sphere = {center, 0.5};
+    // float t = hit_sphere(sphere, ray);
+    Sphere sphere = world_spheres.spheres[0];
+    vec3 center = sphere.center;
+    float t = hit_sphere(sphere, ray);
+    if (t > 0.0) {
+        vec3 normal = normalize(at(ray, t) - center);
+        return vec4(0.5*(normal + vec3(1.0, 1.0, 1.0)), 1.0);
     }
 
     vec3 dir = normalize(ray.direction);
