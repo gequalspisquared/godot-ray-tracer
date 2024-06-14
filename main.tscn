@@ -1,9 +1,9 @@
 [gd_scene load_steps=2 format=3 uid="uid://vqx8i2gjdi74"]
 
-[ext_resource type="Script" path="res://color.gd" id="1_155px"]
+[ext_resource type="Script" path="res://simple_ray_tracer.gd" id="1_d56kf"]
 
 [node name="Main" type="Node"]
-script = ExtResource("1_155px")
+script = ExtResource("1_d56kf")
 
 [node name="Control" type="Control" parent="."]
 layout_mode = 3
