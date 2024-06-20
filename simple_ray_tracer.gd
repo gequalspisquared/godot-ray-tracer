@@ -110,7 +110,7 @@ func _ready():
 func _process(delta):
 	frame += 1
 	time += delta
-	var push_constants := PackedFloat32Array([time, 1.0, 1.0, 1.0]).to_byte_array()
+	var push_constants := PackedFloat32Array([time, frame, 1.0, 1.0]).to_byte_array()
 
 	# Tell compute shader what to do
 	var compute_list := rd.compute_list_begin()
