@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://vqx8i2gjdi74"]
 
-[ext_resource type="Script" path="res://simple_ray_tracer.gd" id="1_d56kf"]
+[ext_resource type="Script" uid="uid://dvjnbe7p6ecro" path="res://simple_ray_tracer.gd" id="1_d56kf"]
 
 [node name="Main" type="Node"]
 script = ExtResource("1_d56kf")
@@ -21,7 +21,7 @@ offset_bottom = 40.0
 [node name="Label" type="Label" parent="."]
 offset_left = 22.0
 offset_top = 20.0
-offset_right = 127.0
-offset_bottom = 84.0
-theme_override_font_sizes/font_size = 24
+offset_right = 158.0
+offset_bottom = 106.0
+theme_override_font_sizes/font_size = 50
 text = "FPS: 0.0"
