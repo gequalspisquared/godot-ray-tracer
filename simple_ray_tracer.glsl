@@ -19,6 +19,7 @@ struct Ray {
 };
 
 struct HitRecord {
+	vec4 color;
 	vec3 point;
 	vec3 normal;
 	float t;
@@ -32,6 +33,7 @@ void hit_record_set_normal_face(inout HitRecord record, Ray ray, vec3 outward_no
 
 struct Sphere {
 	// vec4 data; // xyz is center, w is radius
+	vec4 color;
 	vec3 center;
 	float radius;
 };
@@ -172,6 +174,7 @@ bool hit_sphere(Sphere sphere, Ray ray, Interval ray_t, inout HitRecord record) 
 	}
 
 	record.t = root;
+	record.color = sphere.color;
 	record.point = at(ray, record.t);
 	vec3 outward_normal = (record.point - sphere.center) / sphere.radius;
 	hit_record_set_normal_face(record, ray, outward_normal);
@@ -225,7 +228,8 @@ vec3 trace(Ray ray, inout uint rng_state) {
 			// return vec3(1.0, 0.0, 0.0);
 			// ray_color *= record.normal;
 			// incoming_light = record.normal;
-			ray_color *= vec3(0.5, 0.5, 0.5);
+			// ray_color *= vec3(0.5, 0.5, 0.5);
+			ray_color *= record.color.xyz;
 			// break;
 		} else {
 			vec3 dir = normalize(ray.direction);
@@ -303,7 +307,7 @@ Camera create_camera() {
 
 void main() {
 	// Config stuff
-	int samples_per_pixel = 10;
+	int samples_per_pixel = 100;
 
 	float pixel_samples_scale = 1.0 / samples_per_pixel;
 
@@ -323,6 +327,8 @@ void main() {
 	color *= pixel_samples_scale;
 	// color = vec4(linear_to_gamma)
 	gamma_correction(color);
+	// color = vec4(1.0, 0.0, 0.0, 0.0);
 	// color = vec4(random_vec3(rng_state), 1.0);
+	// color = vec4(1.0, 0.0, 0.0, 1.0);
 	imageStore(output_texture, texel, color);
 }

@@ -19,11 +19,16 @@ var spheres_set: RID
 var frame := 0
 
 class Sphere:
+	var color: Vector4
 	var center: Vector3
 	var radius: float
 
 func sphere_to_packed_array(sphere: Sphere) -> PackedFloat32Array:
 	var array: PackedFloat32Array = []
+	array.append(sphere.color.x)
+	array.append(sphere.color.y)
+	array.append(sphere.color.z)
+	array.append(sphere.color.w)
 	array.append(sphere.center.x)
 	array.append(sphere.center.y)
 	array.append(sphere.center.z)
@@ -35,12 +40,14 @@ func create_world_spheres() -> PackedFloat32Array:
 	var data: PackedFloat32Array = []
 
 	var sphere := Sphere.new()
+	sphere.color = Vector4(1.0, 0.0, 0.0, 1.0)
 	sphere.center = Vector3(0.0, 0.0, -1.0)
 	sphere.radius = 0.5
 
 	data.append_array(sphere_to_packed_array(sphere))
 
 	var sphere2 := Sphere.new()
+	sphere2.color = Vector4(0.0, 1.0, 0.0, 1.0)
 	sphere2.center = Vector3(0.0, -100.5, -1.0)
 	sphere2.radius = 100.0
 
@@ -93,7 +100,7 @@ func _ready():
 
 	@warning_ignore("integer_division")
 	# Extra zeros are for padding since GPU likes spacing everything by 16 bytes
-	var size_array: PackedInt32Array = [world_sphere_data.size() / 4, 0, 0, 0]
+	var size_array: PackedInt32Array = [2*world_sphere_data.size() / 4, 0, 0, 0]
 	# var size_array: PackedInt32Array = [2, 0, 0, 0]
 	var spheres_bytes: PackedByteArray = size_array.to_byte_array()
 	spheres_bytes.append_array(world_sphere_data.to_byte_array())
@@ -127,7 +134,9 @@ func _process(delta):
 
 
 func load_shader(path: String) -> RID:
+	print("Path: ", path)
 	var shader_file := load(path)
+	print("shader code: ", shader_file)
 	var shader_spirv: RDShaderSPIRV= shader_file.get_spirv()
 	return rd.shader_create_from_spirv(shader_spirv)
 
